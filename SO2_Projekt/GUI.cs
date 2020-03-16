@@ -28,6 +28,7 @@ namespace SO2_Projekt
             };
 
             //Dodawanie kontrolek/labelów itd. do okna "Stan Filozofów"
+            //********************************************************
 
             //DEFINICJE KOLORÓW POSZCZEGÓLNYCH FILOZOFÓW
             ColorScheme[] colorSchemes = new ColorScheme[5];
@@ -43,10 +44,7 @@ namespace SO2_Projekt
             colorSchemes[4] = new ColorScheme();
             colorSchemes[4].Normal = Terminal.Gui.Attribute.Make(Color.Black, Color.White);
 
-
-
-            ProgressBar[] progres = new ProgressBar[5];
-
+            ProgressBar[] progresState = new ProgressBar[5];
             Label[] labelsState = new Label[5];
 
             for(int i=0; i<5; i++)
@@ -58,44 +56,98 @@ namespace SO2_Projekt
                     Width = 3,
                     Height = 1
                 };
-                winState.Add(labelsState[i]);
                 labelsState[i].ColorScheme = colorSchemes[i];
 
-                progres[i] = new ProgressBar()
+                progresState[i] = new ProgressBar()
                 {
                     X = 0,
                     Fraction = 1,
                     Y = i * 2 + 1
                 };
+                progresState[i].ColorScheme = colorSchemes[i];
 
-                progres[i].ColorScheme = colorSchemes[i];
-
-                winState.Add(progres[i]);
+                winState.Add(labelsState[i], progresState[i]);
             }
 
-            //Dodawania kontrolelk/labelów itd. do okna "Wizualizacja"
 
-            int xOffset = 25;
-
+            //Dodawanie kontrolelk/labelów itd. do okna "Wizualizacja"
+            //********************************************************
 
             //OKNA JAKO REPREZENTACJA POSZCZEGÓLNYCH FILOZOFÓW
             Window[] philosophers = new Window[5];
-            philosophers[0] = new Window(new Rect(xOffset + 10, 1, 10, 5), "Filo.1");
-            philosophers[1] = new Window(new Rect(xOffset + 0, 7, 10, 5), "Filo.2");
-            philosophers[2] = new Window(new Rect(xOffset + 0, 17, 10, 5), "Filo.3");
-            philosophers[3] = new Window(new Rect(xOffset + 20, 7, 10, 5), "Filo.4");
-            philosophers[4] = new Window(new Rect(xOffset + 20, 17, 10, 5), "Filo.5");
+            philosophers[0] = new Window("Filo.1")
+            {
+                X = Pos.Percent(40),
+                Y = Pos.Percent(10),
+                Width = Dim.Percent(33),
+                Height = Dim.Percent(20)
+            };
+            philosophers[1] = new Window("Filo.2")
+            {
+                X = Pos.Percent(20),
+                Y = Pos.Percent(30),
+                Width = Dim.Percent(25),
+                Height = Dim.Percent(25)
+            };
+            philosophers[2] = new Window("Filo.3")
+            {
+                X = Pos.Percent(20),
+                Y = Pos.Percent(70),
+                Width = Dim.Percent(25),
+                Height = Dim.Percent(50)
+            };
+            philosophers[3] = new Window("Filo.4")
+            {
+                X = Pos.Percent(60),
+                Y = Pos.Percent(70),
+                Width = Dim.Percent(50),
+                Height = Dim.Percent(50)
+            };
+            philosophers[4] = new Window("Filo.5")
+            {
+                X = Pos.Percent(60),
+                Y = Pos.Percent(30),
+                Width = Dim.Percent(50),
+                Height = Dim.Percent(25)
+            };
 
             //OKNA JAKO REPREZENTACJA POSZCZEGÓLNYCH WIDELCÓW
             Window[] forks = new Window[5];
-            forks[0] = new Window(new Rect(xOffset + 2, 2, 6, 3), "1");
-            forks[1] = new Window(new Rect(xOffset + 22, 2, 6, 3), "2");
-            forks[2] = new Window(new Rect(xOffset + 2, 13, 6, 3), "3");
-            forks[3] = new Window(new Rect(xOffset + 22, 13, 6, 3), "4");
-
-            forks[4] = new Window(new Rect(xOffset + 12, 18, 6, 3), "5");
-
-
+            forks[0] = new Window("1")
+            {
+                X = Pos.Percent(26.6666f),
+                Y = Pos.Percent(15),
+                Width = Dim.Percent(9),
+                Height = Dim.Percent(11)
+            };
+            forks[1] = new Window("2")
+            {
+                X = Pos.Percent(26.6666f),
+                Y = Pos.Percent(55),
+                Width = Dim.Percent(9),
+                Height = Dim.Percent(19.5f)
+            };
+            forks[2] = new Window("3")
+            {
+                X = Pos.Percent(46.6666f),
+                Y = Pos.Percent(75),
+                Width = Dim.Percent(12.5f),
+                Height = Dim.Percent(35)
+            };
+            forks[3] = new Window("4")
+            {
+                X = Pos.Percent(66.6666f),
+                Y = Pos.Percent(55),
+                Width = Dim.Percent(20),
+                Height = Dim.Percent(19.5f)
+            };
+            forks[4] = new Window("5")
+            {
+                X = Pos.Percent(66.6666f),
+                Y = Pos.Percent(15),
+                Width = Dim.Percent(20),
+                Height = Dim.Percent(11)
+            };
 
             for (int i=0; i<5; i++)
             {
