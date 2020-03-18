@@ -3,14 +3,24 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using Terminal.Gui;
+using SO2_Projekt.ProgramLogic;
 
 namespace SO2_Projekt
 {
-    public class GUI : Window
+    //Statyczna klasa opakowująca działania z wykorzystaniem biblioteki "Terminal.Gui"
+    public static class GUI
     {
+        private static Window[] forks = new Window[5];
+        private static ColorScheme[] colorSchemes = new ColorScheme[6];
+        private static ProgressBar[] progresState = new ProgressBar[5];
+        private static object eventLock = new object();
 
-        public GUI() : base("SYSTEMY OPERACYJNE 2 - PROBLEM UCZTUJCYCH FILOZOFÓW")
+        public static void Initialize()
         {
+            Application.Init();
+            var top = Application.Top;
+            var main = new Window("SYSTEMY OPERACYJNE 2 - PROBLEM UCZTUJCYCH FILOZOFÓW");
+
             var winVisualisation = new Window("Wizualizacja")
             {
                 X = Pos.Percent(0),
@@ -31,9 +41,9 @@ namespace SO2_Projekt
             //********************************************************
 
             //DEFINICJE KOLORÓW POSZCZEGÓLNYCH FILOZOFÓW
-            ColorScheme[] colorSchemes = new ColorScheme[5];
-            colorSchemes[0] = new ColorScheme();
+
             // pierwszy kolor tekstu, drugi kolor tła
+            colorSchemes[0] = new ColorScheme();
             colorSchemes[0].Normal = Terminal.Gui.Attribute.Make(Color.Black, Color.Green);
             colorSchemes[1] = new ColorScheme();
             colorSchemes[1].Normal = Terminal.Gui.Attribute.Make(Color.Black, Color.Brown);
@@ -44,15 +54,14 @@ namespace SO2_Projekt
             colorSchemes[4] = new ColorScheme();
             colorSchemes[4].Normal = Terminal.Gui.Attribute.Make(Color.Black, Color.White);
 
-            ProgressBar[] progresState = new ProgressBar[5];
             Label[] labelsState = new Label[5];
 
-            for(int i=0; i<5; i++)
+            for (int i = 0; i < 5; i++)
             {
-                labelsState[i] = new Label("Filozof " + (i+1) + ":")
+                labelsState[i] = new Label("Filozof " + (i + 1) + ":")
                 {
                     X = 0,
-                    Y = i*2,
+                    Y = i * 2,
                     Width = 3,
                     Height = 1
                 };
@@ -69,6 +78,8 @@ namespace SO2_Projekt
                 winState.Add(labelsState[i], progresState[i]);
             }
 
+            colorSchemes[5] = new ColorScheme();
+            colorSchemes[5] = progresState[0].ColorScheme;
 
             //Dodawanie kontrolelk/labelów itd. do okna "Wizualizacja"
             //********************************************************
@@ -112,7 +123,6 @@ namespace SO2_Projekt
             };
 
             //OKNA JAKO REPREZENTACJA POSZCZEGÓLNYCH WIDELCÓW
-            Window[] forks = new Window[5];
             forks[0] = new Window("1")
             {
                 X = Pos.Percent(26.6666f),
@@ -149,14 +159,48 @@ namespace SO2_Projekt
                 Height = Dim.Percent(11)
             };
 
-            for (int i=0; i<5; i++)
+            for (int i = 0; i < 5; i++)
             {
                 philosophers[i].ColorScheme = colorSchemes[i];
-                winVisualisation.Add(philosophers[i], forks[i]);                
+                winVisualisation.Add(philosophers[i], forks[i]);
             }
 
-            this.Add(winVisualisation);
-            this.Add(winState);      
+            main.Add(winVisualisation);
+            main.Add(winState);
+            top.Add(main);
+        }
+
+        public static void Run()
+        {
+            Application.Run();
+        }
+
+        public static void OnForkTaken(int id)
+        {
+            Application.MainLoop.Invoke(() => {
+                Random random = new Random();
+                
+                lock(eventLock)
+                {
+                    forks[id].ColorScheme = colorSchemes[random.Next(0, 4)];
+                }
+                
+                Application.Refresh();
+            });
+        }
+
+        public static void OnProgresStateChanged(int id, float value)
+        {
+            Application.MainLoop.Invoke(() => {
+                Random random = new Random();
+
+                lock (eventLock)
+                {
+                    progresState[id].Fraction = value;
+                }
+
+                Application.Refresh();
+            });
         }
     }
 }
