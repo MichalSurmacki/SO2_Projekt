@@ -10,16 +10,17 @@ namespace SO2_Projekt
     {
         static void Main()
         {
-
-            //GUI gui = new GUI();
             GUI.Initialize();
 
 
             ThreadsLogic threadsLogic = new ThreadsLogic();
-            //Philosopher p = new Philosopher(1);
-            //threadsLogic.philosophers[0].ForkTaken += GUI.OnForkTaken;
-
             threadsLogic.StartSimulation();
+
+            threadsLogic.GiveBackForkGUI += GUI.OnForkGivenBack;
+
+            threadsLogic.ProgresStateChangedGUI += GUI.OnProgresStateChanged;
+
+            threadsLogic.TakeForkGUI += GUI.OnForkTaken;
 
             //Thread t = new Thread(fun);
             //t.Start();

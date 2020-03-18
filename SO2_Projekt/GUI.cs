@@ -53,6 +53,8 @@ namespace SO2_Projekt
             colorSchemes[3].Normal = Terminal.Gui.Attribute.Make(Color.Black, Color.Magenta);
             colorSchemes[4] = new ColorScheme();
             colorSchemes[4].Normal = Terminal.Gui.Attribute.Make(Color.Black, Color.White);
+            colorSchemes[5] = new ColorScheme();
+            colorSchemes[5].Normal = Terminal.Gui.Attribute.Make(Color.White, Color.BrightBlue);
 
             Label[] labelsState = new Label[5];
 
@@ -77,9 +79,6 @@ namespace SO2_Projekt
 
                 winState.Add(labelsState[i], progresState[i]);
             }
-
-            colorSchemes[5] = new ColorScheme();
-            colorSchemes[5] = progresState[0].ColorScheme;
 
             //Dodawanie kontrolelk/labelów itd. do okna "Wizualizacja"
             //********************************************************
@@ -175,28 +174,40 @@ namespace SO2_Projekt
             Application.Run();
         }
 
-        public static void OnForkTaken(int id)
+        public static void OnForkTaken(object source, PhilosopherEventArgs args)
         {
             Application.MainLoop.Invoke(() => {
                 Random random = new Random();
                 
                 lock(eventLock)
                 {
-                    forks[id].ColorScheme = colorSchemes[random.Next(0, 4)];
+                    forks[args.ForkId].ColorScheme = colorSchemes[args.PhilosopherId];
                 }
                 
                 Application.Refresh();
             });
         }
 
-        public static void OnProgresStateChanged(int id, float value)
+        public static void OnForkGivenBack(object source, PhilosopherEventArgs args)
         {
             Application.MainLoop.Invoke(() => {
                 Random random = new Random();
 
                 lock (eventLock)
                 {
-                    progresState[id].Fraction = value;
+                    forks[args.ForkId].ColorScheme = colorSchemes[5];
+                }
+
+                Application.Refresh();
+            });
+        }
+
+        public static void OnProgresStateChanged(object source, PhilosopherEventArgs args)
+        {
+            Application.MainLoop.Invoke(() => {
+                lock (eventLock)
+                {
+                    progresState[args.PhilosopherId].Fraction = args.HungerLevel;
                 }
 
                 Application.Refresh();
