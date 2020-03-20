@@ -8,13 +8,17 @@ namespace SO2_Projekt.ProgramLogic
 {
     public class Philosopher
     {
-        int[] debug = new int[2];
-
         private float _hungerLevel;
 
+        private static object eventLock = new object();
+
+        private bool _haveLowerIndexFork;
+
+        private bool _haveUpperIndexFork;
+
+        public Fork[] forks = new Fork[5];
+
         public int Id { get; set; }
-        
-        public bool IsThinking { get; set; }
 
         public float HungerLevel
         {
@@ -37,7 +41,6 @@ namespace SO2_Projekt.ProgramLogic
         public Philosopher(int id)
         {
             this.Id = id;
-            this.IsThinking = true;
             this.HungerLevel = 0;
             this.IsThreadRunning = false;
         }
@@ -68,11 +71,20 @@ namespace SO2_Projekt.ProgramLogic
             }
         }
 
-        //DELEGAT
+        public delegate void LogAddedEventHandler(object sender, PhilosopherEventArgs args);
+        public event LogAddedEventHandler LogAdded;
+        protected virtual void OnLogAdded(String log)
+        {
+            if (GiveBackFork != null)
+            {
+                String completeLog = "F." + this.Id + ": " + log;
+                PhilosopherEventArgs args = new PhilosopherEventArgs() { Log = completeLog };
+                LogAdded(this, args);
+            }
+        }
+
         public delegate void ProgresStateChangedEventHandler(object sender, PhilosopherEventArgs args);
-        //EVENT
         public event ProgresStateChangedEventHandler ProgresStateChanged;
-        //PUBLISHER
         protected virtual void OnProgresStateChanged()
         {
             if (ProgresStateChanged != null)
@@ -82,86 +94,104 @@ namespace SO2_Projekt.ProgramLogic
             }
         }
 
-        private void SleepRandom()
-        {
-            Random random = new Random();
-            //int time = random.Next(1, 500);
-            int time = 1000;
-            Thread.Sleep(time);
-        }
-
         public void ThreadFunction()
         {
             this.IsThreadRunning = true;
             Random random = new Random();
             int[] forksIds = new int[2] { -1, -1 };
 
+            _haveUpperIndexFork = false;
+            _haveLowerIndexFork = false;
+
             while (IsThreadRunning)
             {
-                if (IsThinking)
-                {
-                    Console.WriteLine("elo z " + this.Id);
-                    this.HungerLevel += 0.05f;
-                    this.SleepRandom();
-                    //próbuje
-                    //WIDELEC O MNIEJSZYM INDEKSIE
-                    if (this.Id == 0)
-                    {
-                        forksIds[0] = 0;
-                        forksIds[1] = 4;
-                    }
-                    else
-                    {
-                        forksIds[0] = this.Id - 1;
-                        forksIds[1] = this.Id;
-                    }
-                    Console.WriteLine(Id + " Chce wziąć o indeksie " + forksIds[0]);
-                    bool result = OnTakeForkRequest(forksIds[0]);
-                    Console.WriteLine(Id + " " + result);
-                    if (result)
-                    {
-                        Console.WriteLine(Id + " Chce wziąć o indeksie " + forksIds[1]);
-                        result = OnTakeForkRequest(forksIds[1]);
-                        Console.WriteLine(Id + " " + result);
-                    }
+                this.HungerLevel += 0.1f;
+                OnLogAdded("Zgłodniałem (0.1)");
+                OnLogAdded("Myślę proszę zostawić mnie w spokoju!!!");
+                OnProgresStateChanged();
+                this.SleepRandom();
 
-                    //jak result == true to wziął oba
-                    if(result)
-                    {
-                        debug[1] = 1;
-                        IsThinking = false;
-                        continue;
-                        Console.WriteLine(Id + "Koontynuje");
-                        //kontynuacja jedzonka
-                    }
-                    else
-                    {
-                        IsThinking = true;
-                        HungerLevel += 0.05f;
-                        OnProgresStateChanged();
-                        this.SleepRandom();
-                    }
+                if (this.Id == 0)
+                {
+                    forksIds[0] = 0;
+                    forksIds[1] = 4;
                 }
                 else
                 {
-                    Console.WriteLine(Id + " JEM " + forksIds[0]);
-                    //je
-                    //this.SleepRandom();
-                    Thread.Sleep(1000);
-                    this.HungerLevel = 0;
-                    OnProgresStateChanged();
-                    //odkłada
-                    Console.WriteLine(Id + " oddaje o indeksie " + forksIds[1]);
-                    OnGiveBackFork(forksIds[1]);
-                    debug[0] = 0;
-                    Console.WriteLine(Id + " oddaje o indeksie " + forksIds[0]);
-                    OnGiveBackFork(forksIds[0]);
-                    //Application.Refresh();
-                    debug[1] = 0;
-                    IsThinking = true;
+                    forksIds[0] = this.Id - 1;
+                    forksIds[1] = this.Id;
                 }
+
+                OnLogAdded("Spróbuję podnieść widelce...");
+                //próbuj
+                //WIDELEC O MNIEJSZYM INDEKSIE
+                bool result = false;
+                //Jeśli nie ma o niższym indeksie to próbuje go podnieść
+                while (!_haveLowerIndexFork)
+                {
+                    lock (eventLock)
+                    {
+                        result = forks[forksIds[0]].IsAvailable;
+                        if (result)
+                        {
+                            forks[forksIds[0]].IsAvailable = false;
+                            OnTakeForkRequest(forksIds[0]);
+                            _haveLowerIndexFork = true;
+                            OnLogAdded("Wziąłem widelec o indeksie " + (forksIds[0] + 1) + ".");
+                        }
+                    }
+                    this.HungerLevel += 0.01f;
+                    OnProgresStateChanged();
+                    Thread.Sleep(200);
+                }
+
+                //Jak już ma o niższym indeksie to próbuje wziąć o większym
+                while (!_haveUpperIndexFork)
+                {
+                    lock (eventLock)
+                    {
+                        result = forks[forksIds[1]].IsAvailable;
+                        if (result)
+                        {
+                            forks[forksIds[1]].IsAvailable = false;
+                            OnTakeForkRequest(forksIds[1]);
+                            _haveUpperIndexFork = true;
+                            OnLogAdded("Wziąłem widelec o indeksie " + (forksIds[1] + 1) + ".");
+                        }
+                    }
+                    this.HungerLevel += 0.01f;
+                    OnProgresStateChanged();
+                    Thread.Sleep(200);
+                }
+
+                OnLogAdded("Jem proszę mi nie przeszkadzać!!!");
+                this.SleepRandom();
+                this.HungerLevel = 0;
+                OnProgresStateChanged();
+                OnLogAdded("Skończyłem jeść... Czas odłożyć widelce.");
+                //odkłada
+                lock (eventLock)
+                {
+                    forks[forksIds[1]].IsAvailable = true;
+                    OnGiveBackFork(forksIds[1]);
+                    OnLogAdded("Odłożyłem widelec o indeksie " + (forksIds[1] + 1) + ".");
+                }
+                this._haveLowerIndexFork = false;
+                lock (eventLock)
+                {
+                    forks[forksIds[0]].IsAvailable = true;
+                    OnGiveBackFork(forksIds[0]);
+                    OnLogAdded("Odłożyłem widelec o indeksie " + (forksIds[0] + 1) + ".");
+                }
+                _haveUpperIndexFork = false;
             }
         }
-
+        private void SleepRandom()
+        {
+            Random random = new Random();
+            int time = random.Next(1, 500);
+            time += 1000;
+            Thread.Sleep(time);
+        }
     }
 }

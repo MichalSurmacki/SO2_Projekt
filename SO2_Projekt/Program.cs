@@ -27,7 +27,7 @@ namespace SO2_Projekt
 
             //p.ForkTaken += GUI.OnForkTaken;
 
-            GUI.Run();
+            Application.Run();
         }
     }
 }

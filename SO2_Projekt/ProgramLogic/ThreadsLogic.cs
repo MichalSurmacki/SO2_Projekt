@@ -12,6 +12,8 @@ namespace SO2_Projekt.ProgramLogic
         private Philosopher[] philosophers = new Philosopher[5];
         private Thread[] threads = new Thread[5];
         private static object eventLock = new object();
+        
+        private int LogsCounter;
 
         public void StartSimulation()
         {
@@ -22,10 +24,12 @@ namespace SO2_Projekt.ProgramLogic
             for(int i=0; i<5; i++)
             {
                 philosophers[i] = new Philosopher(i);
-                philosophers[i].TakeForkRequest += this.TakeFork;
-                philosophers[i].GiveBackFork += this.GiveBackFork;
-                philosophers[i].ProgresStateChanged += this.ProgresStateChanged;
-                //Tworzenie wątków
+                philosophers[i].forks = forks;
+                philosophers[i].TakeForkRequest += GUI.OnForkTaken;
+                philosophers[i].GiveBackFork += GUI.OnForkGivenBack;
+                philosophers[i].ProgresStateChanged += GUI.OnProgresStateChanged;
+                philosophers[i].LogAdded += GUI.OnLogAdded;
+                
                 threads[i] = new Thread(philosophers[i].ThreadFunction);
                 threads[i].Start();
             }
@@ -103,7 +107,6 @@ namespace SO2_Projekt.ProgramLogic
                 return false;
             }
         }
-
 
     }
 }

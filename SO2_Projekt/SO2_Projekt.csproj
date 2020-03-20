@@ -6,6 +6,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="GUI.cs~RF2313c9ce.TMP" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Terminal.Gui" Version="0.70.0" />
   </ItemGroup>
 

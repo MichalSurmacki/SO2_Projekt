@@ -13,9 +13,14 @@ namespace SO2_Projekt.ProgramLogic
         /// Domyślnie właściwość ustawiana jest na wartość - false
         /// </summary>
         public bool ForkAvailable { get; set; }
+        public String Log { get; set; }
+
+        public int Number { get; set; }
 
         public PhilosopherEventArgs()
         {
+            Number = 0;
+            Log = String.Empty;
             HungerLevel = -1;
             PhilosopherId = -1;
             ForkId = -1;

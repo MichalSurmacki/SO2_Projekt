@@ -13,6 +13,7 @@ namespace SO2_Projekt
         private static Window[] forks = new Window[5];
         private static ColorScheme[] colorSchemes = new ColorScheme[6];
         private static ProgressBar[] progresState = new ProgressBar[5];
+        private static TextView logTextView;
         private static object eventLock = new object();
 
         public static void Initialize()
@@ -28,14 +29,37 @@ namespace SO2_Projekt
                 Width = Dim.Percent(70),
                 Height = Dim.Fill()
             };
+            winVisualisation.CanFocus = false;
 
-            var winState = new Window("Stan Filozofów:")
+            var winState = new Window("Stan Zagłodzenia Filozofów:")
             {
                 X = Pos.Percent(70),
                 Y = 0,
                 Width = Dim.Percent(100),
-                Height = Dim.Fill()
+                Height = Dim.Percent(55)
             };
+            winState.CanFocus = false;
+
+            var winLogs = new Window("Logi:")
+            {
+                X = Pos.Percent(70),
+                Y = Pos.Percent(55),
+                Width = Dim.Percent(100),
+                Height = Dim.Percent(100)
+            };
+
+            //Dodawanie kontrolek/labelów itd. do okna "Logów"
+            //********************************************************
+
+            logTextView = new TextView()
+            {
+                X = 0,
+                Y = 0,
+                Width = Dim.Percent(100),
+                Height = Dim.Percent(100)
+            };
+            winLogs.Add(logTextView);
+
 
             //Dodawanie kontrolek/labelów itd. do okna "Stan Filozofów"
             //********************************************************
@@ -63,7 +87,7 @@ namespace SO2_Projekt
                 labelsState[i] = new Label("Filozof " + (i + 1) + ":")
                 {
                     X = 0,
-                    Y = i * 2,
+                    Y = 1 + i * 2,
                     Width = 3,
                     Height = 1
                 };
@@ -72,8 +96,8 @@ namespace SO2_Projekt
                 progresState[i] = new ProgressBar()
                 {
                     X = 0,
-                    Fraction = 1,
-                    Y = i * 2 + 1
+                    Fraction = 0,
+                    Y = 1 + i * 2 + 1
                 };
                 progresState[i].ColorScheme = colorSchemes[i];
 
@@ -161,55 +185,52 @@ namespace SO2_Projekt
             for (int i = 0; i < 5; i++)
             {
                 philosophers[i].ColorScheme = colorSchemes[i];
+                philosophers[i].CanFocus = false;
+                forks[i].CanFocus = false;
                 winVisualisation.Add(philosophers[i], forks[i]);
             }
 
             main.Add(winVisualisation);
             main.Add(winState);
+            main.Add(winLogs);
             top.Add(main);
-        }
-
-        public static void Run()
-        {
-            Application.Run();
         }
 
         public static void OnForkTaken(object source, PhilosopherEventArgs args)
         {
-            Application.MainLoop.Invoke(() => {
-                Random random = new Random();
-                
-                lock(eventLock)
-                {
-                    forks[args.ForkId].ColorScheme = colorSchemes[args.PhilosopherId];
-                }
-                
+            Application.MainLoop.Invoke(() =>
+            {
+                forks[args.ForkId].ColorScheme = colorSchemes[args.PhilosopherId];
                 Application.Refresh();
             });
         }
 
         public static void OnForkGivenBack(object source, PhilosopherEventArgs args)
         {
-            Application.MainLoop.Invoke(() => {
-                Random random = new Random();
-
-                lock (eventLock)
-                {
-                    forks[args.ForkId].ColorScheme = colorSchemes[5];
-                }
-
+            Application.MainLoop.Invoke(() =>
+            {
+                forks[args.ForkId].ColorScheme = colorSchemes[5];
                 Application.Refresh();
             });
         }
 
         public static void OnProgresStateChanged(object source, PhilosopherEventArgs args)
         {
-            Application.MainLoop.Invoke(() => {
-                lock (eventLock)
-                {
-                    progresState[args.PhilosopherId].Fraction = args.HungerLevel;
-                }
+            Application.MainLoop.Invoke(() =>
+            {
+                progresState[args.PhilosopherId].Fraction = args.HungerLevel;
+                Application.Refresh();
+            });
+        }
 
+        public static void OnLogAdded(object source, PhilosopherEventArgs args)
+        {
+            Application.MainLoop.Invoke(() =>
+            {
+                logTextView.Text += args.Log;
+                logTextView.ReadOnly = true;
+                _coursorPos++;
+                int bottom = logTextView.Frame.Bottom;
                 Application.Refresh();
             });
         }
