@@ -1,5 +1,8 @@
 ﻿using System;
 using Terminal.Gui;
+using SO2_Projekt.ProgramLogic;
+using System.Threading;
+
 
 namespace SO2_Projekt
 {
@@ -7,7 +10,16 @@ namespace SO2_Projekt
     {
         static void Main()
         {
-            Application.Run<GUI>();
+            ThreadsLogic threadsLogic = new ThreadsLogic();
+
+            GUI.ShowWelcomeMessage();
+
+            GUI.Initialize();
+            
+            threadsLogic.StartSimulation();
+
+            GUI.StartApplication();
+
         }
     }
 }
