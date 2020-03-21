@@ -6,11 +6,12 @@ using Terminal.Gui;
 
 namespace SO2_Projekt.ProgramLogic
 {
+    //Klasa odpowiedzialna za implementację zachowania filozofa (wątku)
     public class Philosopher
     {
         private float _hungerLevel;
 
-        private static object eventLock = new object();
+        private static object _eventLock = new object();
 
         private bool _haveLowerIndexFork;
 
@@ -25,6 +26,7 @@ namespace SO2_Projekt.ProgramLogic
             get => _hungerLevel;
             set
             {
+                //Watrość właściwości HungerLevel nie może przekroczyć 1
                 if ((value >= 0) && (value <= 1))
                 {
                     _hungerLevel = value;
@@ -38,30 +40,43 @@ namespace SO2_Projekt.ProgramLogic
 
         public bool IsThreadRunning { get; set; }
 
-        public Philosopher(int id)
+        public bool IsDone { get; set; }
+
+        //Konstruktor klasy Philosopher - wymagana jest referencja do tablicy obiektów klasy Fork - zasób wspólny dla wszystkich filozofów
+        public Philosopher(int id, Fork[] forks)
         {
+            this.IsDone = false;
+            this.forks = forks;
             this.Id = id;
             this.HungerLevel = 0;
             this.IsThreadRunning = false;
         }
 
-        //EVENT ODPOWIEDZIALNY ZA POPROSZENIE PRZEZ FILOZOFA O WIDELEC
-        public delegate void TakeForkRequestEventHandler(object sender, PhilosopherEventArgs args);
-        public event TakeForkRequestEventHandler TakeForkRequest;
-        protected virtual bool OnTakeForkRequest(int forkId)
+        //Delegat dla wszystkich eventów dotyczących zmiany GUI
+        public delegate void GUIEventHandler(object sender, PhilosopherEventArgs args);
+
+        //Eventy
+        public event GUIEventHandler TakeFork;
+        public event GUIEventHandler GiveBackFork;
+        public event GUIEventHandler LogAdded;
+        public event GUIEventHandler ProgresStateChanged;
+
+        //OPIS ZNAJDUJCYCH SIĘ NIŻEJ PUBLISHERÓW EVENTÓW
+        //W Aplikcaji wyświetlanie wizualizacji w konsoli realizowane jest przez bibliotekę "Terminal.Gui", niżej znajdujący się publisherowie podnoszą eventy, które wychwytywane są przez subscriberów,
+        //znajdujących się w klasie GUI. Subscriberowie znajdujący się w klasie GUI odpowiedzialni są jedynie za zmiany graficzne interfejsu użytkownika.
+
+        //Publisher eventu TakeFork - event podnoszony jest, w momencie podniesienia widelca przez filozofa
+        protected virtual bool OnTakeFork(int forkId)
         {
-            if (TakeForkRequest != null)
+            if (TakeFork != null)
             {
                 PhilosopherEventArgs args = new PhilosopherEventArgs() { PhilosopherId = this.Id, ForkId = forkId };
-                TakeForkRequest(this, args);
+                TakeFork(this, args);
                 return args.ForkAvailable;
             }
             return false;
         }
-
-        //EVENT ODPOWIEDZIALNY ZA ODŁOŻENIE PRZEZ FILOZOFA WIDELECA
-        public delegate void GiveBackForkRequestEventHandler(object sender, PhilosopherEventArgs args);
-        public event GiveBackForkRequestEventHandler GiveBackFork;
+        //Publisher eventu GiveBackFork - event podnoszony jest w momencie odłożenia widelca przez filozofa
         protected virtual void OnGiveBackFork(int forkId)
         {
             if (GiveBackFork != null)
@@ -70,21 +85,17 @@ namespace SO2_Projekt.ProgramLogic
                 GiveBackFork(this, args);
             }
         }
-
-        public delegate void LogAddedEventHandler(object sender, PhilosopherEventArgs args);
-        public event LogAddedEventHandler LogAdded;
+        //Publisher eventu OnLogAdded - event podnoszony jest w momencie dodania logu, do logów programu
         protected virtual void OnLogAdded(String log)
         {
-            if (GiveBackFork != null)
+            if (LogAdded != null)
             {
                 String completeLog = "F." + this.Id + ": " + log;
                 PhilosopherEventArgs args = new PhilosopherEventArgs() { Log = completeLog };
                 LogAdded(this, args);
             }
         }
-
-        public delegate void ProgresStateChangedEventHandler(object sender, PhilosopherEventArgs args);
-        public event ProgresStateChangedEventHandler ProgresStateChanged;
+        //Publisher eventu ProgresStateChanged - event podnoszony jest w momencie zmiany stanu głodu filozofa
         protected virtual void OnProgresStateChanged()
         {
             if (ProgresStateChanged != null)
@@ -94,6 +105,7 @@ namespace SO2_Projekt.ProgramLogic
             }
         }
 
+        //Funkcja wątku
         public void ThreadFunction()
         {
             this.IsThreadRunning = true;
@@ -105,8 +117,10 @@ namespace SO2_Projekt.ProgramLogic
 
             while (IsThreadRunning)
             {
+                //Poziom głodu zwiększa się z każdą wykonaną pętlą
                 this.HungerLevel += 0.1f;
                 OnLogAdded("Zgłodniałem (0.1)");
+                //Metoda SleepRandom() w tym miejscu reprezentuje proces myślenia przez filozofa
                 OnLogAdded("Myślę proszę zostawić mnie w spokoju!!!");
                 OnProgresStateChanged();
                 this.SleepRandom();
@@ -123,61 +137,62 @@ namespace SO2_Projekt.ProgramLogic
                 }
 
                 OnLogAdded("Spróbuję podnieść widelce...");
-                //próbuj
-                //WIDELEC O MNIEJSZYM INDEKSIE
                 bool result = false;
-                //Jeśli nie ma o niższym indeksie to próbuje go podnieść
+                //Jeśli filozof nie trzyma widelca o niższym indeksie to próbuje go podnieść
                 while (!_haveLowerIndexFork)
                 {
-                    lock (eventLock)
+                    lock (_eventLock)
                     {
                         result = forks[forksIds[0]].IsAvailable;
                         if (result)
                         {
                             forks[forksIds[0]].IsAvailable = false;
-                            OnTakeForkRequest(forksIds[0]);
+                            OnTakeFork(forksIds[0]);
                             _haveLowerIndexFork = true;
                             OnLogAdded("Wziąłem widelec o indeksie " + (forksIds[0] + 1) + ".");
                         }
                     }
+                    //W między czasie poziom jest głodu rośnie
                     this.HungerLevel += 0.01f;
                     OnProgresStateChanged();
                     Thread.Sleep(200);
                 }
 
-                //Jak już ma o niższym indeksie to próbuje wziąć o większym
+                //Jak filozof trzyma widelec o niższym indeksie to próbuje wziąć widelec o większym indeksie
                 while (!_haveUpperIndexFork)
                 {
-                    lock (eventLock)
+                    lock (_eventLock)
                     {
                         result = forks[forksIds[1]].IsAvailable;
                         if (result)
                         {
                             forks[forksIds[1]].IsAvailable = false;
-                            OnTakeForkRequest(forksIds[1]);
+                            OnTakeFork(forksIds[1]);
                             _haveUpperIndexFork = true;
                             OnLogAdded("Wziąłem widelec o indeksie " + (forksIds[1] + 1) + ".");
                         }
                     }
+                    //W między czasie poziom jest głodu rośnie
                     this.HungerLevel += 0.01f;
                     OnProgresStateChanged();
                     Thread.Sleep(200);
                 }
 
+                //Metoda SleepRandom() w tym miejscu reprezentuje okres jedzenia przez filozofa
                 OnLogAdded("Jem proszę mi nie przeszkadzać!!!");
                 this.SleepRandom();
                 this.HungerLevel = 0;
                 OnProgresStateChanged();
                 OnLogAdded("Skończyłem jeść... Czas odłożyć widelce.");
-                //odkłada
-                lock (eventLock)
+                //Filozof odkłada widelce najpierw o indeksie większym, potem o indeksie mniejszym
+                lock (_eventLock)
                 {
                     forks[forksIds[1]].IsAvailable = true;
                     OnGiveBackFork(forksIds[1]);
                     OnLogAdded("Odłożyłem widelec o indeksie " + (forksIds[1] + 1) + ".");
                 }
                 this._haveLowerIndexFork = false;
-                lock (eventLock)
+                lock (_eventLock)
                 {
                     forks[forksIds[0]].IsAvailable = true;
                     OnGiveBackFork(forksIds[0]);
@@ -185,7 +200,10 @@ namespace SO2_Projekt.ProgramLogic
                 }
                 _haveUpperIndexFork = false;
             }
+            IsDone = true;
         }
+
+        //Funkcja odpowiedzialna za usypianie wątku w granicach 1 - 1,5 sekundy
         private void SleepRandom()
         {
             Random random = new Random();

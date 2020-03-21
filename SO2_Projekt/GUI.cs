@@ -7,7 +7,7 @@ using SO2_Projekt.ProgramLogic;
 
 namespace SO2_Projekt
 {
-    //Statyczna klasa opakowująca działania z wykorzystaniem biblioteki "Terminal.Gui"
+    //Statyczna klasa opakowująca działania z wykorzystaniem biblioteki "Terminal.Gui" - Rysuje interfejs użytkownika
     public static class GUI
     {
         private static Window[] forks = new Window[5];
@@ -18,7 +18,7 @@ namespace SO2_Projekt
 
         public static void Initialize()
         {
-            Application.Init();
+            //Application.Init();
             var top = Application.Top;
             var main = new Window("SYSTEMY OPERACYJNE 2 - PROBLEM UCZTUJCYCH FILOZOFÓW");
 
@@ -40,7 +40,7 @@ namespace SO2_Projekt
             };
             winState.CanFocus = false;
 
-            var winLogs = new Window("Logi:")
+            var winLogs = new Window("Logi (1 wiersz aktualny log):")
             {
                 X = Pos.Percent(70),
                 Y = Pos.Percent(55),
@@ -190,9 +190,10 @@ namespace SO2_Projekt
                 winVisualisation.Add(philosophers[i], forks[i]);
             }
 
-            main.Add(winVisualisation);
-            main.Add(winState);
-            main.Add(winLogs);
+            //Dialog welcomeDialog = new Dialog("MichalSurmacki SO2 Problem Filozofow", 100, 100, Button OK);
+
+
+            main.Add(winVisualisation, winState, winLogs);
             top.Add(main);
         }
 
@@ -227,12 +228,38 @@ namespace SO2_Projekt
         {
             Application.MainLoop.Invoke(() =>
             {
-                logTextView.Text += args.Log;
+                logTextView.Text = args.Log + "\n" + logTextView.Text;
                 logTextView.ReadOnly = true;
-                _coursorPos++;
-                int bottom = logTextView.Frame.Bottom;
                 Application.Refresh();
             });
+        }
+
+        public static bool ShowWelcomeMessage()
+        {
+            Application.Init();
+            bool okpressed = false;
+            var ok = new Button(3, 14, "Ok")
+            {
+                Clicked = () => { Application.RequestStop(); okpressed = true; }
+            };
+            var dialog = new Dialog("Michal Surmacki 241130 INF IMT 1st. 6sem.", 60, 18, ok);
+
+            var entry = new Label("\"Problem ucztujacych filozofow\"\nAby zakonczyc program wciśnij CTRL+C")
+            {
+                //X = Pos.Percent(25),
+                Y = Pos.Percent(25),
+                Width = Dim.Fill(),
+                Height = 1,
+                TextAlignment = TextAlignment.Centered
+            };
+            dialog.Add(entry);
+            Application.Run(dialog);
+            return okpressed;
+        }
+
+        public static void StartApplication()
+        {
+            Application.Run();
         }
     }
 }

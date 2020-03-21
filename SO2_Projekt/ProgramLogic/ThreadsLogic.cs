@@ -2,111 +2,58 @@
 using System.Collections.Generic;
 using System.Text;
 using System.Threading;
+using Terminal.Gui;
 
 namespace SO2_Projekt.ProgramLogic
 {
+    //Klasa odpowiedzalna za inicjalizację filozofów, widelców, wątków
+    /*Problem zagłodzenia rozwiązywany jest w taki sposób, że filozofowie jedzą "w kółko", tzn. na samym początku filozof sięga po widelec o niższym indeksie, jeśli uda mi się go chwycić,
+      to czeka na widelec o wyższym indeksie (dla filozofa o indeksie 0 "niższym" indeksem widelca jest indeks 0). Kiedy widelec o wyższym indeksie zostaje zwolniony filozof, który na niego 
+      czekał chwyta go i zaczyna proces "jedzenia". Następnie, odkłada widelce w odwrotnej kolejności do tej, w której je pobrał tj. odkłada widelec o wyższym indeksie, oraz o niższym
+      - w ten sposób wyeliminowany jest porblem zagładzania - każdy filozof w, końcu dostanie 2 widelce.*/
     public class ThreadsLogic
     {
-        
         private Fork[] forks = new Fork[5];
         private Philosopher[] philosophers = new Philosopher[5];
         private Thread[] threads = new Thread[5];
-        private static object eventLock = new object();
-        
-        private int LogsCounter;
 
-        public void StartSimulation()
+        public ThreadsLogic()
         {
-            for(int i=0; i<5; i++)
+            Console.CancelKeyPress += new ConsoleCancelEventHandler(myHandler);
+            for (int i = 0; i < 5; i++)
             {
                 forks[i] = new Fork(i);
             }
-            for(int i=0; i<5; i++)
+            for (int i = 0; i < 5; i++)
             {
-                philosophers[i] = new Philosopher(i);
-                philosophers[i].forks = forks;
-                philosophers[i].TakeForkRequest += GUI.OnForkTaken;
+                philosophers[i] = new Philosopher(i, forks);
+            }
+        }
+
+        public void StartSimulation()
+        {
+            for (int i = 0; i < 5; i++)
+            {
+                philosophers[i] = new Philosopher(i, forks);
+                philosophers[i].TakeFork += GUI.OnForkTaken;
                 philosophers[i].GiveBackFork += GUI.OnForkGivenBack;
                 philosophers[i].ProgresStateChanged += GUI.OnProgresStateChanged;
                 philosophers[i].LogAdded += GUI.OnLogAdded;
-                
+
                 threads[i] = new Thread(philosophers[i].ThreadFunction);
                 threads[i].Start();
             }
         }
 
-        public delegate void TakeForkEventHandler(object sender, PhilosopherEventArgs args);
-        public event TakeForkEventHandler TakeForkGUI;
-        protected virtual void OnTakeForkGUI(PhilosopherEventArgs args)
+        protected void myHandler(object sender, ConsoleCancelEventArgs args)
         {
-            if(TakeForkGUI != null)
+            for (int i = 0; i < 5; i++)
             {
-                TakeForkGUI(this, args);
+                philosophers[i].IsThreadRunning = false;
             }
-        }
 
-        public delegate void GiveBackForkEventHandler(object sender, PhilosopherEventArgs args);
-        public event GiveBackForkEventHandler GiveBackForkGUI;
-        protected virtual void OnGiveBackForkGUI(PhilosopherEventArgs args)
-        {
-            if (GiveBackForkGUI != null)
-            {
-                GiveBackForkGUI(this, args);
-            }
+            Application.MainLoop.Invoke(() => Application.RequestStop());
+            Environment.Exit(0);
         }
-
-        public delegate void ProgresStateChangedEventHandler(object sender, PhilosopherEventArgs args);
-        public event ProgresStateChangedEventHandler ProgresStateChangedGUI;
-        protected virtual void OnProgresStateChangedGUI(PhilosopherEventArgs args)
-        {
-            if (ProgresStateChangedGUI != null)
-            { 
-                ProgresStateChangedGUI(this, args);
-            }
-        }
-
-        private void TakeFork(object sender, PhilosopherEventArgs args)
-        {
-            lock(eventLock)
-            {
-                bool available = CheckIfForkIsAvailable(args.ForkId);
-                args.ForkAvailable = available;
-                if(available)
-                {
-                    forks[args.ForkId].IsAvailable = false;
-                }
-                OnTakeForkGUI(args);
-            }
-        }
-        
-        private void GiveBackFork(object sender, PhilosopherEventArgs args)
-        {
-            lock(eventLock)
-            {
-                forks[args.ForkId].IsAvailable = true;
-                OnGiveBackForkGUI(args);
-            }
-        }
-
-        private void ProgresStateChanged(object sender, PhilosopherEventArgs args)
-        {
-            lock(eventLock)
-            {
-                OnProgresStateChangedGUI(args);
-            }
-        }
-
-        private bool CheckIfForkIsAvailable(int id)
-        {
-            if (id >= 0 && id < 5)
-            {
-                return forks[id].IsAvailable;
-            }
-            else
-            {
-                return false;
-            }
-        }
-
     }
 }
